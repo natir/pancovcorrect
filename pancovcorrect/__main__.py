@@ -3,7 +3,6 @@ Main package funcion of pancovcorrect
 """
 
 # standard import
-import inspect
 import os
 import sys
 
@@ -28,27 +27,27 @@ def main(**config):
 
     True if workflow execution was successful.
     """
-    snakemake_parser = snakemake.get_argument_parser()
-    params = vars(snakemake_parser.parse_args(config["snakemake"]))
+    params = config["snakemake"]
     del config["snakemake"]
 
     # Found Snakefile
-    params["snakefile"] = os.path.join(
-        os.path.dirname(__file__), f"{package_name}.snk"
+    params.extend(
+        [
+            "--snakefile",
+            os.path.join(os.path.dirname(__file__), f"{package_name}.snk"),
+        ]
     )
 
     # Add parameter with config
-    params["config"] = config
-    print(config)
+    params.append("--config")
+    for (name, value) in config.items():
+        params.append(f"{name}={value}")
 
     # Add target
-    params["targets"] = ["all"]
+    params.extend(["--", "all"])
 
-    # Clean not use argument
-    args_set = set(inspect.signature(snakemake.snakemake).parameters.keys())
-    params = {k: v for k, v in params.items() if k in args_set}
-
-    return snakemake.snakemake(**params)
+    print(" ".join(params))
+    return snakemake.main(params)
 
 
 if __name__ == "__main__":

@@ -5,7 +5,6 @@ Function use to perform kmer filtering
 # standard import
 import csv
 import itertools
-
 from collections import Counter
 
 
@@ -31,7 +30,7 @@ def valid_kmer(kmer_counts, config):
         if tt_counts > 0:
             ratio = min(
                 kmer_counts[forward] / tt_counts,
-                kmer_counts[reverse] / tt_counts
+                kmer_counts[reverse] / tt_counts,
             )
         else:
             ratio = 0

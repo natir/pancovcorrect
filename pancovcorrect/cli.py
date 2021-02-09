@@ -110,6 +110,7 @@ def get_argument(args):
     # Edit input
     args.kmer_sizes.sort()
 
+    args.snakemake = [val for val in args.snakemake if val != "--"]
     # Check input
     if len(args.inputs) != len(args.outputs):
         logging.error("inputs and outputs need have same number of values")
