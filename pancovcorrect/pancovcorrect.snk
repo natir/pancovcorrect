@@ -1,0 +1,120 @@
+from pancovcorrect import uncorrected_path, kmerfiltering, asm2gfa
+
+rule count_kmer:
+    input:
+        reads = lambda wcs: uncorrected_path(wcs, config),
+
+    output:
+        db = f"{config['working_dir']}/kmersets/{{k}}/{{filename}}.kmc_suf",
+        kmer_count = f"{config['working_dir']}/kmersets/{{k}}/{{filename}}.tsv",
+
+    params:
+        prefix = f"{config['working_dir']}/kmersets/{{k}}/{{filename}}",
+        work_dir = lambda wcs: f"{config['working_dir']}/kmc_workdir/{wcs.k}_{wcs.filename}",
+
+    log:
+        f"{config['working_dir']}/logs/count_kmer/{{k}}/{{filename}}.log"
+
+    threads:
+        config['max_threads']
+
+    shell:
+        """
+        kmc -k{wildcards.k} -t{threads} -r {input.reads} {params.prefix} {params.work_dir}
+        kmc_dump -ci1 {params.prefix} {output.kmer_count}
+        """
+
+
+rule select_kmer:
+    input:
+        f"{config['working_dir']}/kmersets/{{k}}/{{filename}}.tsv",
+
+    output:
+        f"{config['working_dir']}/kmersets/{{k}}/{{filename}}.filtred.fasta",
+
+    log:
+        f"{config['working_dir']}/logs/select_kmer/{{k}}/{{filename}}.log"
+
+    run:
+        kmerfiltering(input, output, **config)
+
+
+rule asm_kmers:
+    input:
+        kmerset = f"{config['working_dir']}/kmersets/{{k}}/{{filename}}.filtred.fasta",
+
+    output:
+        asm = f"{config['working_dir']}/asm/{{k}}/{{filename}}.unitigs.fa",
+
+    params:
+        outprefix = f"{config['working_dir']}/asm/{{k}}/{{filename}}",
+
+    log:
+        f"{config['working_dir']}/logs/asm_kmers/{{k}}/{{filename}}.log"
+
+    threads:
+        config['max_threads']
+
+    run:
+        "bcalm -in {input.kmerset} -abundance-min 0 -kmer-size {wildcards.k} -repartition-type 1 -minimizer-type 1 -nb-cores {threads} -out {params.outprefix}"
+
+
+rule asm2graph:
+    input:
+        asm = f"{config['working_dir']}/asm/{{k}}/{{filename}}.unitigs.fa",
+
+    output:
+        graph = f"{config['working_dir']}/graph/{{k}}/{{filename}}.gfa",
+
+    log:
+        f"{config['working_dir']}/logs/asm2graph/{{k}}/{{filename}}.log"
+
+    run:
+        asm2gfa(input, output, int(wildcards.k))
+
+
+rule correct:
+    input:
+        reads = lambda wcs: uncorrected_path(wcs, config),
+        graph = f"{config['working_dir']}/graph/{{k}}/{{filename}}.gfa",
+
+    output:
+        corrected = f"{config['working_dir']}/reads/{{k}}/{{filename}}.fasta",
+
+    log:
+        f"{config['working_dir']}/logs/correct/{{k}}/{{filename}}.log"
+
+    threads:
+        config['max_threads']
+
+    shell:
+        "GraphAligner -t {threads} -g {input.graph} -f {input.reads} --corrected-out {output.corrected} -x dbg --seeds-minimizer-length {wildcards.k} 2> {log}"
+
+
+rule generate_input:
+    input:
+        lambda wcs: f"{config['inputs'][int(wcs.id)]}"
+
+    output:
+        f"{config['working_dir']}/reads/raw/{{id}}.fasta",
+
+    shell:
+        "seqtk seq -A {input} > {output}"
+
+
+rule generate_output:
+    input:
+        [f"{config['working_dir']}/reads/{config['kmer_sizes'][-1]}/{index}.fasta" for index in range(len(config["outputs"]))]
+
+    output:
+        config["outputs"]
+
+    run:
+        for (in_path, out_path) in zip(input, output):
+            shell("cp {in_path} {out_path}")
+
+
+rule all:
+    input:
+        config["outputs"]
+
