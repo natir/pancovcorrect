@@ -1,0 +1,87 @@
+# Package description
+[project]
+name = "pancovcorrect"
+version = "0.0.0"
+description = "A tools to correct long reads with iterative kmer length"
+readme = "Readme.md"
+requires-python = ">=3.8"
+license = { text = "MIT", file = "LICENSE" }
+
+keywords = [
+    "bioinformatics", "reads correction"
+]
+
+classifers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Console",
+    "License :: OSI Approved :: MIT License",
+    "Topic :: Scientific/Engineering :: Bio-Informatics",
+    "Programming Language :: Python :: 3.8"
+]
+
+dependencies = [
+    "snakemake~=5.32",
+]
+
+dev-dependencies = [
+    "black~=20.8b1",
+    "flake8~=3.8",
+    "pytest~=6.2",
+]
+
+authors = [
+    { name = "Pierre Marijon", email = "pierre.marijon@hhu.de" }
+]
+
+
+[project.urls]
+homepage = "fixme"
+Repository = "fixme"
+Documentation = "fixme"
+
+
+[project.scripts]
+pancovcorrect = "pancovcorrect.__main__:main"
+
+# Tool section
+[tool]
+[tool.pdm]
+
+[tool.pdm.scripts]
+pancovcorrect = "python -m pancovcorrect"
+
+[tool.black]
+line-length = 79
+exclude = '''
+/(
+    \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | _build
+  | buck-out
+  | build
+  | dist
+  | pdm/_vendor/*
+)/
+'''
+
+[tool.isort]
+profile = "black"
+atomic = true
+skip_glob = ["__pypackages__"]
+filter_files = true
+known_first_party = ["pdm"]
+known_third_party = [
+    "snakemake",
+]
+
+[tool.flake8]
+extend-exclude = "__pypackages__"
+
+# Build system
+[build-system]
+requires = ["pdm-pep517"]
+build-backend = "pdm.pep517.api"
