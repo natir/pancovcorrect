@@ -39,6 +39,7 @@ def main(**config):
 
     # Add parameter with config
     params["config"] = config
+    print(config)
 
     # Add target
     params["targets"] = ["all"]

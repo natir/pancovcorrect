@@ -21,6 +21,7 @@ def get_argument(args):
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
 
+    # Required params
     parser.add_argument(
         "-i",
         "--inputs",
@@ -34,6 +35,13 @@ def get_argument(args):
         nargs="+",
         required=True,
         help="List of read outputs file",
+    )
+    parser.add_argument(
+        "-w",
+        "--working-dir",
+        type=str,
+        required=True,
+        help="A directory where working file is write",
     )
 
     parser.add_argument(
@@ -52,6 +60,7 @@ def get_argument(args):
         help="Path to reference genome (optional)",
     )
 
+    # Kmer filter params
     parser.add_argument(
         "-m",
         "--min-abundance",
@@ -66,7 +75,6 @@ def get_argument(args):
         default=50,
         help="Kmer with abundance upper than this parameter is keep",
     )
-
     parser.add_argument(
         "-f",
         "--forward-min-ratio",
@@ -80,6 +88,15 @@ def get_argument(args):
         type=float,
         default=0.7,
         help="Kmer abundance between min and max abundance with coverage upper than guess coverage times this parameter is keep",
+    )
+
+    # Snakemake params
+    parser.add_argument(
+        "-t",
+        "--max-threads",
+        type=int,
+        default=48,
+        help="Max threads per rules",
     )
 
     parser.add_argument(
@@ -96,6 +113,10 @@ def get_argument(args):
     # Check input
     if len(args.inputs) != len(args.outputs):
         logging.error("inputs and outputs need have same number of values")
+        return None
+
+    if len(args.kmer_sizes) != len(set(args.kmer_sizes)):
+        logging.error("each kmer size must be uniq")
         return None
 
     if args.min_abundance >= args.max_abundance:
