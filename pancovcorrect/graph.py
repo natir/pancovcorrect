@@ -8,25 +8,25 @@ def asm2gfa(input_path, output_path, k):
     Convert bcalm assemblie in gfa format
     """
 
-    with open(input_path) as f:
+    with open(input_path) as input_file:
         # name stores the id of the unitig
         # optional is a list which stores all the optional tags of a segment
         # links stores all the link information about a segment
         name = ""
         optional = []
         links = []
-        g = open(output_path, "w")
+        graph = open(output_path, "w")
         # adding Header to the file
-        g.write("H\tVN:Z:1.0\tks:i:%d\n" % k)  # includes the k-mer size
+        graph.write("H\tVN:Z:1.0\tks:i:%d\n" % k)  # includes the k-mer size
 
         # firstLine is for implemetation purpose so that we don't add some
         # garbage value to the output file.
-        firstLine = 0
+        first_line = 0
         # segment stores the segment till present, in a fasta file,
         # segment can be on many lines, hence we need to get the whole segment
         # from all the lines
         segment = ""
-        for line in f:
+        for line in input_file:
             line = line.replace("\n", "")
             if line[0] != ">":
                 # segment might be in more than one line, hence we get the
@@ -34,57 +34,56 @@ def asm2gfa(input_path, output_path, k):
                 segment += line
             if line[0] == ">":
                 if (
-                    firstLine != 0
+                    first_line != 0
                 ):  # if it's not the firstline in the input file, we store
                     # the input in GFA format in the output file
-                    __write_segment(name, segment, optional, g, links)
+                    __write_segment(name, segment, optional, graph, links)
                     segment = ""
 
-                firstLine = 1
+                first_line = 1
                 # once the previous segment and it's information has been
                 # stored, we start the next segment and it's information
-                a = line.split(" ")
-                name = a[0][1:]  # get the id
+                line = line.split(" ")
+                name = line[0][1:]  # get the id
                 optional = []
                 links = []
                 # we skip the first value because the first value is ">ID"
-                for i in range(1, len(a)):
+                for i in range(1, len(line)):
                     # we need this because the line can end with a space, hence
                     # we get one extra value in our list.
-                    if a[i] == "":
+                    if line[i] == "":
                         continue
                     if (
-                        a[i][0:2] == "MA"
+                        line[i][0:2] == "MA"
                     ):  # previous bcalm2 versions had "MA=[xxx]" optional tag
                         # as well, kept it just for compatibility, and reformated
-                        optional.append(a[i][0:2] + ":f:" + a[i][2:])
-                    elif a[i][0:2] == "L:":  # for links
-                        b = a[i].split(":")
-                        k1 = k - 1
+                        optional.append(line[i][0:2] + ":f:" + line[i][2:])
+                    elif line[i][0:2] == "L:":  # for links
+                        link = line[i].split(":")
                         links.append(
                             "L\t"
                             + name
                             + "\t"
-                            + b[1]
+                            + link[1]
                             + "\t"
-                            + b[2]
+                            + link[2]
                             + "\t"
-                            + b[3]
+                            + link[3]
                             + "\t"
-                            + str(k1)
+                            + str(k - 1)
                             + "M\n"
                         )
                     else:  # all the other optional tags
-                        optional.append(a[i])
+                        optional.append(line[i])
 
         # we will miss the last one, because it won't go into the if condition
         # - if(line[0]==">") and hence won't add the segment to the file.
-        __write_segment(name, segment, optional, g, links)
+        __write_segment(name, segment, optional, graph, links)
 
-        g.close()
+        graph.close()
 
 
-def __write_segment(name, segment, optional, g, links):
+def __write_segment(name, segment, optional, graph, links):
     add = ""
     add += "S\t"  # for segment
     add += name  # id of segment
@@ -95,8 +94,8 @@ def __write_segment(name, segment, optional, g, links):
         add += i
         add += "\t"
     # adding Segment to the file
-    g.write(add.strip() + "\n")
+    graph.write(add.strip() + "\n")
     for (
         j
     ) in links:  # adding all the links of the current segment to the GFA file
-        g.write(j)
+        graph.write(j)

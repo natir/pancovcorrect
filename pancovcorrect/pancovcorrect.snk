@@ -27,7 +27,7 @@ rule count_kmer:
 
 rule select_kmer:
     input:
-        unpack(lambda wcs: select_kmer_input(wcs, config))
+        unpack(lambda _: select_kmer_input(config))
     
     output:
         f"{config['working_dir']}/kmersets/{{k}}/{{filename}}.filtred.fasta",
