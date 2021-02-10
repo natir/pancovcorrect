@@ -21,14 +21,12 @@ def select_kmer_input(config):
     Generate input for kmer selection step with and without reference
     """
 
-    inputs = dict()
-
-    inputs[
-        "reads"
-    ] = f"{config['working_dir']}/kmersets/{{k}}/{{filename}}.tsv"
     if config["reference"] != "None":
-        inputs[
-            "reference"
-        ] = f"{config['working_dir']}/kmersets/{{k}}/reference.tsv"
+        return {
+            "reads": f"{config['working_dir']}/kmersets/{{k}}/{{filename}}.tsv",
+            "reference": f"{config['working_dir']}/kmersets/{{k}}/reference.tsv",
+        }
 
-    return inputs
+    return {
+        "reads": f"{config['working_dir']}/kmersets/{{k}}/{{filename}}.tsv"
+    }
