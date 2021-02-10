@@ -15,7 +15,7 @@ def kmerfiltering(input_path, output_path, **config):
     kmer_counts = read_kmc_dump(input_path["reads"])
 
     with open(output_path, "w") as out:
-        if "reference" in input_path:
+        if "reference" in input_path.keys():
             for (kmer, _) in generate_kmc_dump(input_path["reference"]):
                 print(f">references\n{kmer}", file=out)
 

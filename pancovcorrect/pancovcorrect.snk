@@ -22,8 +22,8 @@ rule count_kmer:
     shell:
         """
         mkdir -p {params.work_dir}
-        kmc -b -k{wildcards.k} -t{threads} -r -fa {input.reads} {params.prefix} {params.work_dir} &> {log}
-        kmc_dump {params.prefix} {output.kmer_count} &> {log}
+        kmc -b -ci0 -k{wildcards.k} -t{threads} -r -fa {input.reads} {params.prefix} {params.work_dir} &> {log}
+        kmc_dump -ci0 {params.prefix} {output.kmer_count} &> {log}
         """
 
 
@@ -81,7 +81,7 @@ rule correct:
         graph = f"{config['working_dir']}/graph/{{k}}/{{id}}.gfa",
         
     output:
-        alignment = f"{config['working_dir']}/reads/{{k}}/{{id}}.gaf",
+        alignment = f"{config['working_dir']}/graph/{{k}}/{{id}}.gaf",
         corrected = f"{config['working_dir']}/reads/{{k}}/{{id}}.fasta",
 
     log:
