@@ -15,8 +15,12 @@ def kmerfiltering(input_path, output_path, **config):
     kmer_counts = read_kmc_dump(input_path)
 
     with open(output_path, "w") as out:
+        if "reference" in input_path:
+            for (kmer, _) in generate_kmc_dump(input_path["reference"]):
+                print(f">references\n{kmer}", file=out)
+
         for kmer in valid_kmer(kmer_counts, config):
-            print("f>1\n{kmer}", file=out)
+            print(f">reads\n{kmer}", file=out)
 
 
 def valid_kmer(kmer_counts, config):
@@ -37,9 +41,11 @@ def valid_kmer(kmer_counts, config):
 
         if ratio < config["forward_min_ratio"]:
             continue
-        elif tt_counts < config["min_abundance"]:
+
+        if tt_counts < config["min_abundance"]:
             continue
-        elif tt_counts > config["max_abundance"]:
+
+        if tt_counts > config["max_abundance"]:
             yield forward
         else:
             preds = [
@@ -64,35 +70,26 @@ def valid_kmer(kmer_counts, config):
                 yield forward
 
 
+def generate_kmc_dump(path):
+    """
+    Generate (kmer, count) from kmc dump file
+    """
+    with open(str(path)) as inp:
+        reader = csv.reader(inp, delimiter=" ")
+        for row in reader:
+            yield (row[0], int(row[1]))
+
+
 def read_kmc_dump(path):
     """
-    Read kmc dump
+    Convert kmc dump file in Counter
     """
     data = Counter()
 
-    with open(str(path)) as fh:
-        reader = csv.reader(fh, delimiter=" ")
-        for row in reader:
-            data[row[0]] = int(row[1])
+    for (kmer, count) in generate_kmc_dump(path):
+        data[kmer] = count
 
     return data
-
-
-def contain_homopolymer(kmer, length=4):
-    """
-    Return true if kmer contains homopolymer
-    """
-    currentRepeatLength = 0
-    lastBase = "N"
-    for base in kmer:
-        if base == lastBase:
-            currentRepeatLength += 1
-            if currentRepeatLength == length:
-                return True
-        else:
-            currentRepeatLength = 0
-        lastBase = base
-    return False
 
 
 def around_kmer(kmer, pos):
@@ -121,8 +118,8 @@ def __generate_all_seq(length):
     """
     Generate all sequence with length
     """
-    for p in itertools.product(["A", "C", "T", "G"], repeat=length):
-        yield "".join(p)
+    for sequence in itertools.product(["A", "C", "T", "G"], repeat=length):
+        yield "".join(sequence)
 
 
 def __rev_comp(seq):

@@ -1,4 +1,4 @@
-from pancovcorrect import uncorrected_path, kmerfiltering, asm2gfa
+from pancovcorrect import uncorrected_path, kmerfiltering, asm2gfa, select_kmer_input
 
 rule count_kmer:
     input:
@@ -27,8 +27,8 @@ rule count_kmer:
 
 rule select_kmer:
     input:
-        f"{config['working_dir']}/kmersets/{{k}}/{{filename}}.tsv",
-
+        unpack(lambda wcs: select_kmer_input(wcs, config))
+    
     output:
         f"{config['working_dir']}/kmersets/{{k}}/{{filename}}.filtred.fasta",
 
@@ -77,7 +77,7 @@ rule correct:
     input:
         reads = lambda wcs: uncorrected_path(wcs, config),
         graph = f"{config['working_dir']}/graph/{{k}}/{{filename}}.gfa",
-
+        
     output:
         corrected = f"{config['working_dir']}/reads/{{k}}/{{filename}}.fasta",
 
@@ -102,6 +102,17 @@ rule generate_input:
         "seqtk seq -A {input} > {output}"
 
 
+rule generate_ref_input:
+    input:
+        config['reference']
+
+    output:
+        f"{config['working_dir']}/reads/raw/reference.fasta"
+
+    shell:
+        "seqtk seq -A {input} > {output}"
+
+        
 rule generate_output:
     input:
         [f"{config['working_dir']}/reads/{config['kmer_sizes'][-1]}/{index}.fasta" for index in range(len(config["outputs"]))]
