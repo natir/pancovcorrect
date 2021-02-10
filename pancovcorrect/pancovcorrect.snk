@@ -5,7 +5,8 @@ rule count_kmer:
         reads = lambda wcs: uncorrected_path(wcs, config),
 
     output:
-        db = f"{config['working_dir']}/kmersets/{{k}}/{{filename}}.kmc_suf",
+        db_pre = f"{config['working_dir']}/kmersets/{{k}}/{{filename}}.kmc_pre",
+        db_suf = f"{config['working_dir']}/kmersets/{{k}}/{{filename}}.kmc_suf",
         kmer_count = f"{config['working_dir']}/kmersets/{{k}}/{{filename}}.tsv",
 
     params:
@@ -20,8 +21,9 @@ rule count_kmer:
 
     shell:
         """
-        kmc -k{wildcards.k} -t{threads} -r {input.reads} {params.prefix} {params.work_dir}
-        kmc_dump -ci1 {params.prefix} {output.kmer_count}
+        mkdir -p {params.work_dir}
+        kmc -b -k{wildcards.k} -t{threads} -r -fa {input.reads} {params.prefix} {params.work_dir} &> {log}
+        kmc_dump {params.prefix} {output.kmer_count} &> {log}
         """
 
 
@@ -30,65 +32,66 @@ rule select_kmer:
         unpack(lambda _: select_kmer_input(config))
     
     output:
-        f"{config['working_dir']}/kmersets/{{k}}/{{filename}}.filtred.fasta",
+        f"{config['working_dir']}/kmersets/{{k}}/{{id}}.filtred.fasta",
 
     log:
-        f"{config['working_dir']}/logs/select_kmer/{{k}}/{{filename}}.log"
+        f"{config['working_dir']}/logs/select_kmer/{{k}}/{{id}}.log"
 
     run:
-        kmerfiltering(input, output, **config)
+        kmerfiltering(input, output[0], **config)
 
 
 rule asm_kmers:
     input:
-        kmerset = f"{config['working_dir']}/kmersets/{{k}}/{{filename}}.filtred.fasta",
+        kmerset = f"{config['working_dir']}/kmersets/{{k}}/{{id}}.filtred.fasta",
 
     output:
-        asm = f"{config['working_dir']}/asm/{{k}}/{{filename}}.unitigs.fa",
+        asm = f"{config['working_dir']}/asm/{{k}}/{{id}}.unitigs.fa",
 
     params:
-        outprefix = f"{config['working_dir']}/asm/{{k}}/{{filename}}",
+        outprefix = f"{config['working_dir']}/asm/{{k}}/{{id}}",
 
     log:
-        f"{config['working_dir']}/logs/asm_kmers/{{k}}/{{filename}}.log"
-
-    threads:
-        config['max_threads']
-
-    run:
-        "bcalm -in {input.kmerset} -abundance-min 0 -kmer-size {wildcards.k} -repartition-type 1 -minimizer-type 1 -nb-cores {threads} -out {params.outprefix}"
-
-
-rule asm2graph:
-    input:
-        asm = f"{config['working_dir']}/asm/{{k}}/{{filename}}.unitigs.fa",
-
-    output:
-        graph = f"{config['working_dir']}/graph/{{k}}/{{filename}}.gfa",
-
-    log:
-        f"{config['working_dir']}/logs/asm2graph/{{k}}/{{filename}}.log"
-
-    run:
-        asm2gfa(input, output, int(wildcards.k))
-
-
-rule correct:
-    input:
-        reads = lambda wcs: uncorrected_path(wcs, config),
-        graph = f"{config['working_dir']}/graph/{{k}}/{{filename}}.gfa",
-        
-    output:
-        corrected = f"{config['working_dir']}/reads/{{k}}/{{filename}}.fasta",
-
-    log:
-        f"{config['working_dir']}/logs/correct/{{k}}/{{filename}}.log"
+        f"{config['working_dir']}/logs/asm_kmers/{{k}}/{{id}}.log"
 
     threads:
         config['max_threads']
 
     shell:
-        "GraphAligner -t {threads} -g {input.graph} -f {input.reads} --corrected-out {output.corrected} -x dbg --seeds-minimizer-length {wildcards.k} 2> {log}"
+        "bcalm -in {input.kmerset} -abundance-min 1 -kmer-size {wildcards.k} -repartition-type 1 -minimizer-type 1 -nb-cores {threads} -out {params.outprefix} &> {log}"
+
+
+rule asm2graph:
+    input:
+        asm = f"{config['working_dir']}/asm/{{k}}/{{id}}.unitigs.fa",
+
+    output:
+        graph = f"{config['working_dir']}/graph/{{k}}/{{id}}.gfa",
+
+    log:
+        f"{config['working_dir']}/logs/asm2graph/{{k}}/{{id}}.log"
+
+    run:
+        asm2gfa(input[0], output[0], int(wildcards.k))
+
+
+rule correct:
+    input:
+        reads = lambda wcs: uncorrected_path(wcs, config),
+        graph = f"{config['working_dir']}/graph/{{k}}/{{id}}.gfa",
+        
+    output:
+        alignment = f"{config['working_dir']}/reads/{{k}}/{{id}}.gaf",
+        corrected = f"{config['working_dir']}/reads/{{k}}/{{id}}.fasta",
+
+    log:
+        f"{config['working_dir']}/logs/correct/{{k}}/{{id}}.log"
+
+    threads:
+        config['max_threads']
+
+    shell:
+        "GraphAligner -t {threads} -g {input.graph} -f {input.reads} --alignments-out {output.alignment} --corrected-out {output.corrected} -x dbg --seeds-minimizer-length {wildcards.k} &> {log}"
 
 
 rule generate_input:
@@ -107,7 +110,7 @@ rule generate_ref_input:
         config['reference']
 
     output:
-        f"{config['working_dir']}/reads/raw/reference.fasta"
+        f"{config['working_dir']}/reads/{{raw}}/reference.fasta"
 
     shell:
         "seqtk seq -A {input} > {output}"
@@ -129,3 +132,6 @@ rule all:
     input:
         config["outputs"]
 
+
+wildcard_constraints:
+    id = "\d+"

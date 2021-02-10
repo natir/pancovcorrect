@@ -13,6 +13,9 @@ def uncorrected_path(wcs, config):
     else:
         k = config["kmer_sizes"][config["kmer_sizes"].index(wcs.k) - 1]
 
+    if "id" in wcs.keys():
+        return f"{config['working_dir']}/reads/{k}/{wcs.id}.fasta"
+
     return f"{config['working_dir']}/reads/{k}/{wcs.filename}.fasta"
 
 
@@ -23,10 +26,8 @@ def select_kmer_input(config):
 
     if config["reference"] != "None":
         return {
-            "reads": f"{config['working_dir']}/kmersets/{{k}}/{{filename}}.tsv",
+            "reads": f"{config['working_dir']}/kmersets/{{k}}/{{id}}.tsv",
             "reference": f"{config['working_dir']}/kmersets/{{k}}/reference.tsv",
         }
 
-    return {
-        "reads": f"{config['working_dir']}/kmersets/{{k}}/{{filename}}.tsv"
-    }
+    return {"reads": f"{config['working_dir']}/kmersets/{{k}}/{{id}}.tsv"}

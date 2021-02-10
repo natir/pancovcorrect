@@ -12,7 +12,7 @@ def kmerfiltering(input_path, output_path, **config):
     """
     Filter kmer
     """
-    kmer_counts = read_kmc_dump(input_path)
+    kmer_counts = read_kmc_dump(input_path["reads"])
 
     with open(output_path, "w") as out:
         if "reference" in input_path:
@@ -75,7 +75,7 @@ def generate_kmc_dump(path):
     Generate (kmer, count) from kmc dump file
     """
     with open(str(path)) as inp:
-        reader = csv.reader(inp, delimiter=" ")
+        reader = csv.reader(inp, delimiter="\t")
         for row in reader:
             yield (row[0], int(row[1]))
 

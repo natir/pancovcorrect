@@ -46,7 +46,6 @@ def main(**config):
     # Add target
     params.extend(["--", "all"])
 
-    print(" ".join(params))
     return snakemake.main(params)
 
 
